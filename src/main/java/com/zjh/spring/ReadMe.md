@@ -2,8 +2,8 @@
     用于存放spring相关的基础类
     Spring
         |-annocatin_ 注解类
-            |-ComponentScan：用于路径扫描
-            |-Component：用于声明Bean对象
+            |-@ComponentScan：用于路径扫描
+            |-@Component：用于声明Bean对象
         |-ZJHApplicationContext
     ZJHApplicationContext 模拟IOC容器，管理bean对象
 ## ZJHApplicationContext类
@@ -23,4 +23,5 @@
     Application classloader 负责加载 其他的目录，包括自己编写的代码存放的class文件的数据
     而自己编写生成的class文件就是被维护在了/target/classes/···中了
 **所以可以根据classloader来获取当前类的绝对路径！**
+
     

@@ -5,7 +5,7 @@ import com.zjh.spring.annocation_.ComponentScan;
 import com.zjh.spring.annocation_.Scope;
 
 @Component
-@Scope("protoType")
+@Scope
 public class OrderService {
     public void doSomethings(){
         System.out.println("order!我被IOC创建啦！！！");

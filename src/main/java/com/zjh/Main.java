@@ -12,11 +12,11 @@ public class Main {
         // 创建IOC容器，获取配置类信息 创建单例Bean
         ZJHApplicationContext zjhApplicationContext = new ZJHApplicationContext(AppConfig.class);
 
-
+        UserService userService =(UserService) zjhApplicationContext.getBean("userService");
         userService.doSomething();
 
-        OrderService orderService =(OrderService) zjhApplicationContext.getBean("orderService");
-        orderService.doSomethings();
+//        OrderService orderService =(OrderService) zjhApplicationContext.getBean("orderService");
+//        orderService.doSomethings();
 
     }
 }

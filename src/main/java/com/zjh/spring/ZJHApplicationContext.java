@@ -1,5 +1,6 @@
 package com.zjh.spring;
 
+import com.zjh.spring.annocation_.Autowired;
 import com.zjh.spring.annocation_.Component;
 import com.zjh.spring.annocation_.ComponentScan;
 import com.zjh.spring.annocation_.Scope;
@@ -9,6 +10,7 @@ import java.beans.Introspector;
 import java.io.File;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.util.HashMap;
@@ -40,12 +42,37 @@ public class ZJHApplicationContext {
 
         }
 
+        // 进行依赖注入
+
+
     }
 
     private Object createBean(String beanName, BeanDefinition beanDefinition) throws Exception{
         Class clazz = beanDefinition.getType();
-        Object o = clazz.getConstructor().newInstance();
-        return o;
+        Object instance = clazz.getConstructor().newInstance();
+
+        // 此处的是getDeclareFields 而不是getFields！
+        for(Field field : clazz.getDeclaredFields()){
+            // 找到对象中属性是否含有Autowired注解
+            if(field.isAnnotationPresent(Autowired.class)){
+                // 是Autowired 在单例池中查找，先byType再byName
+                // todo 完成byType查找
+                // byName查找
+                field.setAccessible(true); // 强制打开属性赋值
+                String autowiredBeaName = field.getName();
+                if(singletonObjects.containsKey(autowiredBeaName))
+                    field.set(instance, singletonObjects.get(autowiredBeaName));
+                else { // 单例池中没有该对象
+                    // 此处可能导致循环依赖的问题！// todo 解决循环依赖的问题
+                    field.set(instance, getBean(autowiredBeaName));
+
+                }
+
+                // 单例池中没有则进行创建
+
+            }
+        }
+        return instance;
     }
 
 
@@ -135,6 +162,11 @@ public class ZJHApplicationContext {
             return bean;
         }
         else{ // 单例bean状态下：
+            // 还有一种情况是：在当下，此单例对象还没有被创建，则需要重新创建并放入单例池中！
+            if(!singletonObjects.containsKey(beanName)){
+                Object bean = createBean(beanName, beanDefinition);
+                singletonObjects.put(beanName, bean);
+            }
             return singletonObjects.get(beanName);
         }
 

@@ -1,5 +1,6 @@
 package com.zjh.usage.service;
 
+import com.zjh.spring.annocation_.Autowired;
 import com.zjh.spring.annocation_.Component;
 import com.zjh.spring.annocation_.Scope;
 
@@ -7,7 +8,10 @@ import com.zjh.spring.annocation_.Scope;
 @Scope("singleton")
 public class UserService {
 
+    @Autowired
+    private OrderService orderService;
     public void doSomething(){
-        System.out.println("我已经被IOC容器创建并管理啦···");
+        orderService.doSomethings();
+        System.out.println("UserService已经被IOC容器创建并管理啦···");
     }
 }

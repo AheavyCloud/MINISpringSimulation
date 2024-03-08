@@ -1,5 +1,9 @@
 # 模拟MINI Spring启动流程
     Spring有两大特性：IOC与AOP，IOC实现控制反转，AOP实现代码增强
+    spring 初始化流程
+    Component扫描 --> 保存BeanDefinition至 BeanDefinitionMap中 -> 实例化对象 -> 属性赋值
+    -> 初始化前 -> 初始化 -> 初始化后 -> 使用 -> 卸载
+
 ## IOC容器：
     ApplicationContext:
         IOC容器的入口，
@@ -7,6 +11,8 @@
     IOC在启动的过程中需要加载非懒加载的单例Bean
     将所有bean对象封装到BeanDefinition中，保存到BeanDefinitionMap中
     扫描完所有的bean对象以后，对单例bean进行创建
+    同时判断，此bean是否是BeanPostProcessor的是实现类，如果是其实现类则创建并添加到beanPostProcessorList集合中
+
     完成crateBean()方法
     createBean()方法通过从BeanDefinition中获取的class对象，通过反射机制创建bean对象
     如果判断是单例bean，那么就将其放入到单例池SingletonObjectMap中保存，
@@ -37,5 +43,50 @@
 #### todo 解决循环依赖问题
     在Spring源码中使用三级缓存机制来解决循环依赖的问题，
     本质上是因为，虽然userService对象还没有进入单例池singletonObjects由IOC容器统一管理，但是userService已经完成了实例化，
-    在内存中已经有了地址，
-        
+    在内存中已经有了地址
+
+## 初始化操作 InitialingBean
+    当Bean对象实现了InitialingBean接口，就可以在属性赋值之后执行初始化操作
+## BeanPostProcessor！
+spring源码
+```java
+public interface BeanPostProcessor {
+	@Nullable
+	default Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
+		return bean;
+	}
+    
+	@Nullable
+	default Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+		return bean;
+	}
+
+}
+```
+
+    在Spring源码中，使用到了增强骑BeanPostProcessor 其中内含了两个方法：
+    初始化前和初始化后！
+### 具体用法
+    用户可以自己编写类，实现此接口，从而可以在初始化前或者初始化后执行此操作！
+Spring如何得知用户是否自己编写了此接口的实现类呢？
+
+    在编写此类的上面也使用@Coomponent注解，也是通过多态理论中的父类指针指向子类对象的方式完成，调用此方法的初始化前和初始化后操作
+    同时因为BeanPostProcessor是在初始化前后进行执行的，所以，有几个Bean创建的过程，就会导致BeanPostProcessor被执行几次
+    那么在本案例中一共有3次执行了此方法：
+    分别是：ZJHPostProcessor初始化后，OrderService初始化后，以及UserService初始化后
+        调用执行初始化后操作···ZJHPostProcessor 
+#### 执行结果
+    调用执行初始化后操作···orderService
+    userService执行初始化操作
+    调用执行初始化后操作···userService
+    order!我被IOC创建啦！！！
+    UserService已经被IOC容器创建并管理啦···
+#### 细节，如果想针对某一个Bean对象执行初始化后操作则：
+    在自己定义的ZJHPostProcessor中加入判断语句
+    并且通过传入参数
+    ZJHPostProcessor(Object bean, String beanName)
+    以及使用代理模式Proxy.getProxyInstance拿到代理对象！
+### 注解实现普通成员属性赋值
+    就是通过实现BeanPostProcessor接口，通过使用befor or after方式对其他属性完成赋值！
+## 下一版本任务
+    编写Aware接口并实现注意机制

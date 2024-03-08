@@ -5,6 +5,8 @@ import com.zjh.spring.annocation_.Component;
 import com.zjh.spring.annocation_.ComponentScan;
 import com.zjh.spring.annocation_.Scope;
 import com.zjh.spring.pojo.BeanDefinition;
+import com.zjh.spring.pojo.BeanPostProcessor;
+import com.zjh.spring.pojo.InitialingBean;
 
 import java.beans.Introspector;
 import java.io.File;
@@ -13,15 +15,14 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class ZJHApplicationContext {
     private Class configClass;
 
     private Map<String, BeanDefinition> beanDefinitionMap = new HashMap<>();
     private Map<String, Object> singletonObjects = new HashMap<>(); // 单例池：用于存放实际创建出来的bean对象！
+    private List<BeanPostProcessor> beanPostProcessorList = new ArrayList<>(); // 用于存放增强器对象
     public ZJHApplicationContext(Class configClass) throws Exception {
         this.configClass = configClass;
 
@@ -42,14 +43,13 @@ public class ZJHApplicationContext {
 
         }
 
-        // 进行依赖注入
-
 
     }
 
     private Object createBean(String beanName, BeanDefinition beanDefinition) throws Exception{
         Class clazz = beanDefinition.getType();
         Object instance = clazz.getConstructor().newInstance();
+
 
         // 此处的是getDeclareFields 而不是getFields！
         for(Field field : clazz.getDeclaredFields()){
@@ -63,15 +63,30 @@ public class ZJHApplicationContext {
                 if(singletonObjects.containsKey(autowiredBeaName))
                     field.set(instance, singletonObjects.get(autowiredBeaName));
                 else { // 单例池中没有该对象
-                    // 此处可能导致循环依赖的问题！// todo 解决循环依赖的问题
+                    // 此处可能导致循环依赖的问题！
+                    // todo 解决循环依赖的问题
                     field.set(instance, getBean(autowiredBeaName));
-
                 }
-
-                // 单例池中没有则进行创建
-
             }
         }
+
+        // 执行初始化前操作
+        for (BeanPostProcessor beanPostProcessor : beanPostProcessorList){
+            instance = beanPostProcessor.postProcessorBeforeInitialzation(instance, beanName);
+        }
+
+        // 如果此对象实现了初始化接口，那么在属性赋值以后执行初始化方法 -- 执行初始化
+        if (instance instanceof InitialingBean){ // instanceof 针对这个实例化对象判断是否是实现了这个接口等
+            ((InitialingBean) instance).afterPropertiesSet();
+        }
+
+
+        // 执行初始化前操作 -- 实现AOP编程！
+        for(BeanPostProcessor beanPostProcessor : beanPostProcessorList){
+            instance = beanPostProcessor.postProcessorAfterInitialzation(instance, beanName);
+        }
+
+
         return instance;
     }
 
@@ -105,6 +120,12 @@ public class ZJHApplicationContext {
                         //  生成class对象, 将Bean对象信息保存进入BeanDefinition类中，
 
                         if(clazz.isAnnotationPresent(Component.class)){
+                            // 如果是BeanPostprocessor 直接将其加载出来，并进行缓存
+                            if(BeanPostProcessor.class.isAssignableFrom(clazz)){
+                                BeanPostProcessor beanPostProcessor =(BeanPostProcessor) clazz.getConstructor().newInstance();
+                                beanPostProcessorList.add(beanPostProcessor);
+                            }
+
                             // 是bean对象，
                             BeanDefinition beanDefinition = new BeanDefinition();
                             beanDefinition.setType(clazz);
@@ -135,6 +156,14 @@ public class ZJHApplicationContext {
 
                         }
                     } catch (ClassNotFoundException e) {
+                        throw new RuntimeException(e);
+                    } catch (InvocationTargetException e) {
+                        throw new RuntimeException(e);
+                    } catch (InstantiationException e) {
+                        throw new RuntimeException(e);
+                    } catch (IllegalAccessException e) {
+                        throw new RuntimeException(e);
+                    } catch (NoSuchMethodException e) {
                         throw new RuntimeException(e);
                     }
 

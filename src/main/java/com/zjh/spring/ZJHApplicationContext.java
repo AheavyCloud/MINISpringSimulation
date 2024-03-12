@@ -5,6 +5,7 @@ import com.zjh.spring.annocation_.Component;
 import com.zjh.spring.annocation_.ComponentScan;
 import com.zjh.spring.annocation_.Scope;
 import com.zjh.spring.pojo.BeanDefinition;
+import com.zjh.spring.pojo.BeanNameAware;
 import com.zjh.spring.pojo.BeanPostProcessor;
 import com.zjh.spring.pojo.InitialingBean;
 
@@ -14,6 +15,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.*;
 
@@ -70,6 +72,13 @@ public class ZJHApplicationContext {
             }
         }
 
+        // 属性赋值（@Autowired）以后，根据类是否满足aware方法，对bean中的属性进行赋值
+        // 调用Aware中的方法，对beanName进行赋值
+        if(instance instanceof BeanNameAware){
+            ((BeanNameAware) instance).setBeanName(beanName);
+        }
+
+
         // 执行初始化前操作
         for (BeanPostProcessor beanPostProcessor : beanPostProcessorList){
             instance = beanPostProcessor.postProcessorBeforeInitialzation(instance, beanName);
@@ -81,7 +90,7 @@ public class ZJHApplicationContext {
         }
 
 
-        // 执行初始化前操作 -- 实现AOP编程！
+        // 执行初始化后操作 -- 实现AOP编程！
         for(BeanPostProcessor beanPostProcessor : beanPostProcessorList){
             instance = beanPostProcessor.postProcessorAfterInitialzation(instance, beanName);
         }
@@ -192,6 +201,7 @@ public class ZJHApplicationContext {
         }
         else{ // 单例bean状态下：
             // 还有一种情况是：在当下，此单例对象还没有被创建，则需要重新创建并放入单例池中！
+            // 实现懒加载！
             if(!singletonObjects.containsKey(beanName)){
                 Object bean = createBean(beanName, beanDefinition);
                 singletonObjects.put(beanName, bean);

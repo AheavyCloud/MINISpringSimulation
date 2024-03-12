@@ -88,5 +88,17 @@ Spring如何得知用户是否自己编写了此接口的实现类呢？
     以及使用代理模式Proxy.getProxyInstance拿到代理对象！
 ### 注解实现普通成员属性赋值
     就是通过实现BeanPostProcessor接口，通过使用befor or after方式对其他属性完成赋值！
-## 下一版本任务
+## 下版本任务
     编写Aware接口并实现注意机制
+    需求：
+        获取bean的名字，注入到bean对象中，实现bean对象中维护beanName属性，使得创建好bean对象以后
+    其属性beanName是自己在单例池中的名字
+    什么时候就会创建了自己的beanName呢？
+    bean生命周期：
+    扫描所有的@Conmponet注解 -> 生成BeanDefinition对象 -> 放入BeanDefinitionMap -> 根据bean类型进行实例化
+    -> 属性赋值 -> 执行Aware接口方法 -> 初始化前 -> 初始化 -> 初始化后（代理模式AOP）
+
+    为什么使用Aware回调机制？
+    使用Aware回调机制的原因在于，Spring自动创建了Bean对象，如果我们想知道bean对象的相关信息：
+    例如 bean的名字：beanName，或者是什么工厂创建了此Bean：BeanFactory等信息，那么就可以实现Aware接口
+    通过在属性赋值后，初始化前判断bean是否实现了Aware接口而将所需要的信息传递给bean对象。

@@ -31,7 +31,6 @@ public class ZJHPostProcessor implements BeanPostProcessor {
                     Object proxyBean = method.invoke(bean, args); // 执行bean原始方法
                     System.out.println("动态增强！");
                     return proxyBean;
-
                 }
             });
             return proxyBean;
